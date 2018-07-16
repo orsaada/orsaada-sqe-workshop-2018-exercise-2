@@ -1,10 +1,10 @@
-#Sample project
+# Sample project
 
 * You can use this project as a template.
-* Run:
+* To clone the project:
     * If using user/password: `git clone https://github.com/aviram26/sqe-workshop-2018-sample-project.git` 
     * If using SSH key: `git clone git@github.com:aviram26/sqe-workshop-2018-sample-project.git`
-* To install all libraries, run: `npm install`
+* To install all libraries run: `npm install`
 * For code parsing, this project uses the [Esprima](http://esprima.org/) library.
     * See example usage in `src/js/code-analyzer.js`
 * To run the project:
@@ -13,13 +13,15 @@
     * Try the parser... 
 * For testing, this project uses the [Mocha](https://mochajs.org/) library.
     * From the command-line run: `npm run test`
+    * See example test in `test/code-analyzer.test.js`
 * For coverage, this project uses the [nyc](https://github.com/istanbuljs/nyc) library.
     * From the command-line run: `npm run coverage`
+    * Run `coverage/lcov-report/index.html` to see the html report
 * For linting, this project uses the [ESLint](https://eslint.org/) library.
     * From the command-line run: `npm run lint`
+    * See the report file `lint/eslint-report.json`
 
-
-### Example for I/O
+#### Example for I/O
 
 The input:
 
