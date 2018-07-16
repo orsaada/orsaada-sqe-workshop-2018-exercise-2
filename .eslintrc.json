@@ -1,0 +1,37 @@
+{
+    "env": {
+        "browser": true,
+        "es6": true,
+        "node": true,
+        "mocha": true
+    },
+    "extends": [
+        "eslint:recommended"
+    ],
+    "parserOptions": {
+        "ecmaVersion": 2015,
+        "sourceType": "module"
+    },
+    "rules": {
+        "indent": [
+            "error",
+            4
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ],
+        "max-lines-per-function": [
+            "error",
+            20
+        ],
+        "complexity": [
+            "error",
+            5
+        ]
+    }
+}
