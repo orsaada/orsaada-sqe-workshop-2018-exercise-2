@@ -21,7 +21,7 @@
     * From the command-line run: `npm run lint`
     * See the report file `lint/eslint-report.json`
 
-#### Example for I/O
+#### I/O Example
 
 The input:
 
