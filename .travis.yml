@@ -1,0 +1,17 @@
+language: node_js
+
+cache:
+  directories:
+  - $HOME/node_modules
+
+script:
+  - npm install
+  - npm run test
+  - npm run coverage
+  - npm run lint
+
+notifications:
+  email:
+    recipients:
+      - avdayan@bgu.ac.il
+    on_failure: always
