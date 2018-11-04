@@ -9,8 +9,6 @@ cache: npm
 script:
   - npm install
   - npm run test
-  - npm run coverage
-  - npm run lint
 
 notifications:
   email:
