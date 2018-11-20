@@ -16,7 +16,7 @@
     * See example test in `test/code-analyzer.test.js`
 * For coverage, this project uses the [nyc](https://github.com/istanbuljs/nyc) library.
     * From the command-line run: `npm run coverage`
-    * Run `coverage/lcov-report/index.html` to see the html report
+    * See the report file `coverage/coverage-summary.json`
 * For linting, this project uses the [ESLint](https://eslint.org/) library.
     * From the command-line run: `npm run lint`
     * See the report file `lint/eslint-report.json`
@@ -45,10 +45,20 @@ function binarySearch(X, V, n){
 
 Should produce:
 
-Line | Type | Name | Value
---- | --- | --- | ---
-1 | FunctionDeclaration | binarySearch | 
-1 | Param | X |
-... | ... | ... | ...
-2 | VariableDeclarator | low | 0
-... | ... | ... | ...
+Line | Type | Name | Condition | Value
+--- | --- | --- | --- | ---
+1 | function declaration | binarySearch 
+1 | variable declaration | X
+1 | variable declaration | V
+... | ... | ... | ... | ...
+2 | variable declaration | low | | null (or nothing)
+... | ... | ... | ... | ...
+3 | assignment expression | low | | 0
+4 | assignment expression | high | | n - 1
+5 | while statement | | low <= high | 
+... | ... | ... | ... | ...
+7 | if statement | | X < V[mid] |
+... | ... | ... | ... | ... 
+9 | else if statement | | X > V[mid] |
+... | ... | ... | ... | ... 
+12 | return statement | | | mid
