@@ -5,10 +5,9 @@ const parseCode = (codeToParse) => {
 };
 
 export {parseCode};
+export  {statements};
 
 let statements = [];
-
-export  {statements};
 
 const func = {
     'FunctionDeclaration': function_handle,
