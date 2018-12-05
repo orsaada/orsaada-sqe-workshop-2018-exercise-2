@@ -1,13 +1,15 @@
 import * as esprima from 'esprima';
 
-export {parseCode};
-export {create_objects};
-
-const parseCode = (codeToParse) => {
-    return esprima.parseScript(codeToParse);
+const parseCode = (manipulatedCode) => {
+    args_values = manipulatedCode.args;
+    return esprima.parseScript(manipulatedCode.codeToParse,{loc: true});
 };
 
+export {parseCode};
+export  {statements};
+
 let statements = [];
+let args_values = [];
 let params = [];
 let symbol_vocabulary = [];
 
@@ -33,10 +35,6 @@ const func = {
 };
 
 function identifier_handle(identifier){
-    let variable = contains(identifier.name);
-    if(variable != null){
-        return variable.content;
-    }
     return identifier.name;
 }
 
@@ -45,6 +43,7 @@ function create_objects(parseCode) {
     program_handle(parseCode);
     return statements;
 }
+export {create_objects};
 
 function program_handle(program) {
     body_iter(program);
@@ -55,7 +54,7 @@ function function_handle(exp) {
     statements.push({line: exp.id.loc.start.line, type: exp.type, name: func_name, condition: '', value: ''});
     for (let i =0; i<exp.params.length;i++) {
         let param_name = func[exp.params[i].type](exp.params[i]);
-        params.push({name: param_name,content: contains(param_name).content });
+        params.push({name: param_name,content: args_values[i] });
         statements.push({line: exp.params[i].loc.start.line, type: exp.params[i].type, name: param_name, condition: '', value: ''});
     }
     func[exp.body.type](exp.body);
@@ -67,19 +66,14 @@ function variable_handle(obj) {
         let init;
         dec.init === null ? init = '': init = func[dec.init.type](dec.init);
         statements.push({line: obj.loc.start.line, type: obj.type, name: dec.id.name, condition: '', value: init});
-        if(contains(dec.id.name)){
-            obj = null;
-        }
     }
 }
 
 function assignment_handle(exp){
     let name = func[exp.left.type](exp.left);
     let value = func[exp.right.type](exp.right);
-    let found = symbol_vocabulary.contains(name);
-    found == null ? symbol_vocabulary.push({name: name,value: value}): found.content = value;
     statements.push({line: exp.loc.start.line, type: exp.type, name: name, condition: '', value: value});
-    exp = null;
+
 }
 function while_handle(exp) {
     let condition = func[exp.test.type](exp.test);
@@ -101,8 +95,6 @@ function body_iter(statement){
 
 function if_handle(exp){
     let condition = func[exp.test.type](exp.test);
-    exp.test = condition;
-    edit(exp.test.loc);
     statements.push({line: exp.loc.start.line, type: exp.type, name: '', condition: condition, value: ''});
     func[exp.consequent.type](exp.consequent);
     if(exp.alternate !== null ) {
@@ -123,7 +115,6 @@ function for_handle(statement){
 
 function binary_handle(exp){
     let left = func[exp.left.type](exp.left);
-
     let right = func[exp.right.type](exp.right);
     let operator = exp.operator;
     return left+operator+right;
@@ -194,8 +185,30 @@ function contains(name){
     return found;
 }
 
-function edit(loc){
-    let strigger;
-}
+let estraverse = require('estraverse');
+let escodegen = require('escodegen');
 
+(function a() {
+    //build an ast with 2 lines of code
+    let ast = esprima.parse("console.log('1');\n console.log('2');")
+    console.log("original code:\n" + escodegen.generate(ast));
+    console.log();
 
+    //remove one of the lines, works!
+    let done = false;
+    ast = estraverse.replace(ast, {
+        enter: function (node) {
+            if (done)
+                return this.break();
+            if (node.type === esprima.Syntax.ExpressionStatement) {
+                done = true;
+                this.remove();
+            }
+        },
+        leave: function (node) {
+            if (done)
+                return this.break();
+        }
+    });
+    console.log("removed node:\n" + escodegen.generate(ast));
+})();

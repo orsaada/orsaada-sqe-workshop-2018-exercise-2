@@ -5,14 +5,28 @@ import {create_objects} from './code-analyzer';
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
         delete_table();
-        let codeToParse = $('#codePlaceholder').val();
-        let parsedCode = parseCode(codeToParse);
+        let input = $('#codePlaceholder').val();
+        let manipulatedCode = text_manipulation(input);
+        let parsedCode = parseCode(manipulatedCode);
         create_objects(parsedCode);
         create_table();
-        $('#parsedCode').val();
+        $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
     });
 });
 
+function text_manipulation(input){
+    input = input.trim();
+    // break the textblock into an array of lines
+    let lines = input.split('\n');
+    let words = input.split(' ');
+    let argumentLine;
+    words[0] !== 'function' ? argumentLine = lines.splice(0,1) : argumentLine = lines.splice(-1,1);
+    console.log(typeof  argumentLine[0]);
+    let args = argumentLine[0].split(',');
+    // join the array back into a single string
+    let codeToParse = lines.join('\n');
+    return {codeToParse,args};
+}
 const keys = ['Line','Type','Name','Condition', 'Value'];
 const fields = ['line','type','name','condition','value'];
 
