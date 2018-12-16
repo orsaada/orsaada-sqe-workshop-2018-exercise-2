@@ -1,214 +1,206 @@
 import * as esprima from 'esprima';
+let estraverse = require('estraverse');
+let escodegen = require('escodegen');
+let params = [], values = [] ,linesColor = [],params_values = [];
 
-const parseCode = (manipulatedCode) => {
-    args_values = manipulatedCode.args;
-    return esprima.parseScript(manipulatedCode.codeToParse,{loc: true});
+const parseCode = (codeToParse,args) => {
+    values = args;
+    return esprima.parseScript(codeToParse,{loc : true});
 };
 
-export {parseCode};
-export  {statements};
-
-let statements = [];
-let args_values = [];
-let params = [];
-let symbol_vocabulary = [];
-
-const func = {
-    'FunctionDeclaration': function_handle,
-    'VariableDeclaration': variable_handle,
-    'Identifier': identifier_handle,
-    'ExpressionStatement': expression_handle,
-    'WhileStatement': while_handle,
-    'IfStatement': if_handle,
-    'ReturnStatement': return_handle,
-    'ForStatement': for_handle,
-    'BlockStatement': body_iter,
-    'AssignmentExpression': assignment_handle,
-    'BinaryExpression': binary_handle,
-    'UpdateExpression': update_handle,
-    'MemberExpression': member_handle,
-    'Literal': literal_handle,
-    'UnaryExpression': unary_handle,
-    'SequenceExpression': sequence_handle,
-    'LogicalExpression': logical_handle,
-    'ArrayExpression' : array_handle
-};
-
-function identifier_handle(identifier){
-    return identifier.name;
-}
-
-function create_objects(parseCode) {
-    statements = [];
-    program_handle(parseCode);
-    return statements;
-}
-export {create_objects};
-
-function program_handle(program) {
-    body_iter(program);
-}
-
-function function_handle(exp) {
-    let func_name = func[exp.id.type](exp.id);
-    statements.push({line: exp.id.loc.start.line, type: exp.type, name: func_name, condition: '', value: ''});
-    for (let i =0; i<exp.params.length;i++) {
-        let param_name = func[exp.params[i].type](exp.params[i]);
-        params.push({name: param_name,content: args_values[i] });
-        statements.push({line: exp.params[i].loc.start.line, type: exp.params[i].type, name: param_name, condition: '', value: ''});
-    }
-    func[exp.body.type](exp.body);
-}
-
-function variable_handle(obj) {
-    for (let i=0; i<obj.declarations.length; ++i) {
-        let dec = obj.declarations[i];
-        let init;
-        dec.init === null ? init = '': init = func[dec.init.type](dec.init);
-        statements.push({line: obj.loc.start.line, type: obj.type, name: dec.id.name, condition: '', value: init});
-    }
-}
-
-function assignment_handle(exp){
-    let name = func[exp.left.type](exp.left);
-    let value = func[exp.right.type](exp.right);
-    statements.push({line: exp.loc.start.line, type: exp.type, name: name, condition: '', value: value});
-
-}
-function while_handle(exp) {
-    let condition = func[exp.test.type](exp.test);
-    statements.push({line: exp.loc.start.line, type: exp.type, name: '', condition: condition, value: ''});
-    func[exp.body.type](exp.body);
-}
-
-function return_handle(statement){
-    let value = func[statement.argument.type](statement.argument);
-    statements.push({line: statement.loc.start.line, type: statement.type, name: '', condition: '', value: value});
-}
-
-function body_iter(statement){
-    let body = statement.body;
-    for(let i=0;i<body.length;++i){
-        func[body[i].type](body[i]);
-    }
-}
-
-function if_handle(exp){
-    let condition = func[exp.test.type](exp.test);
-    statements.push({line: exp.loc.start.line, type: exp.type, name: '', condition: condition, value: ''});
-    func[exp.consequent.type](exp.consequent);
-    if(exp.alternate !== null ) {
-        if(exp.alternate.type === 'BlockStatement')
-            statements.push({line: exp.loc.start.line, type: 'ElseStatement', name: '', condition: '', value: ''});
-        func[exp.alternate.type](exp.alternate);
-    }
-
-}
-
-function for_handle(statement){
-    let condition = func[statement.test.type](statement.test);
-    statements.push({line: statement.loc.start.line, type: statement.type, name: '', condition: condition, value: ''});
-    func[statement.init.type](statement.init);
-    func[statement.update.type](statement.update);
-    func[statement.body.type](statement.body);
-}
-
-function binary_handle(exp){
-    let left = func[exp.left.type](exp.left);
-    let right = func[exp.right.type](exp.right);
-    let operator = exp.operator;
-    return left+operator+right;
-}
-
-function update_handle(exp){
-    let name = func[exp.argument.type](exp.argument);
-    let operator = exp.operator;
-    let value = exp.prefix ? operator+name: name+operator;
-    statements.push({line: exp.loc.start.line, type: exp.type, name: name, condition: '', value: value});
-}
-
-function literal_handle(literal){
-    return literal.raw;
-}
-
-function member_handle(exp) {
-    let obj = func[exp.object.type](exp.object);
-    let property = func[exp.property.type](exp.property);
-    return obj+'['+property+']';
-}
-
-function expression_handle(exp){
-    func[exp.expression.type](exp.expression);
-}
-
-function unary_handle(exp){
-    let argu = func[exp.argument.type](exp.argument);
-    return exp.operator+argu;
-}
-
-function sequence_handle(exp){
-    for(let i = 0;i<exp.expressions.length ;i++){
-        func[exp.expressions[i].type](exp.expressions[i]);
-    }
-}
-
-function logical_handle(exp){
-    let left = func[exp.left.type](exp.left);
-    let right = func[exp.right.type](exp.right);
-    return left+exp.operator+right;
-
-}
-
-function array_handle(exp){
-    let array = '[';
-    for(let i =0;i<exp.elements.length;i++){
-        array = array+func[exp.elements[i].type](exp.elements[i])+',';
-    }
-    if(exp.elements.length >0)
-        array = array.substring(0,array.length-1);
-    return array+']';
-}
-
-function contains(name){
-    let found = null;
-    for(let i =0;i<params.length;++i){
-        if(params[i].name === name) {
-            return found;
+function symbolic_sub(parsedCode){
+    let func = null;
+    estraverse.traverse(parsedCode, {
+        enter: function (node) {
+            if (node.type === 'FunctionDeclaration'){
+                func = node;
+                this.skip();
+            }
         }
+    });
+    params_values = [];
+    params = func.params;
+    for(let i=0;i<params.length ;++i){
+        params_values.push({name: params[i].name,content: {type: 'Literal', value:parseInt(values[i], 10), raw: values[i]}});
     }
-    for(let i =0;i<symbol_vocabulary.length;++i){
-        if(symbol_vocabulary[i].name === name) {
-            found = symbol_vocabulary[i];
-            break;
+    parsedCode = sub(func ,[]);
+    return parsedCode;
+}
+
+function sub(parsedCode,table){ //
+    parsedCode = estraverse.replace(parsedCode, {
+        enter: function (node) {
+            if(node.type === 'VariableDeclaration'){
+                for(let i=0;i<node.declarations.length;i++)
+                    variable_handle(node.declarations[i], table);
+                this.remove();
+            }
+            if(node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' && assignment_handle(node.expression, table)) {
+                this.remove();
+            }
+            if(node.type === 'ReturnStatement'){
+                return_handle(node,table);
+                this.skip();
+            }
+            if(node.type === 'IfStatement')
+                if_handle(node,table);
+        }
+    });
+    return parsedCode;
+}
+
+function variable_handle(tree,table){
+    tree.init = estraverse.replace(tree.init, {
+        enter: function (node) {
+            if (node.type === 'Identifier'){
+                let found = contains(node,table);
+                if(!isParam(node) && found > -1) {
+                    return table[found].content;
+                }
+            }
+        },
+    });
+    let found = contains(tree.id, table);
+    if(found > -1)
+        table[found].content = tree.init;
+    else
+        table.push({name: tree.id.name, content: tree.init});
+}
+
+function contains(node, table){
+    let found = -1;
+    for(let i =0;i<table.length;++i){
+        if(table[i].name === node.name) {
+            return i;
         }
     }
     return found;
 }
 
-let estraverse = require('estraverse');
-let escodegen = require('escodegen');
+function copy_array(table){
+    let newTable = [];
+    for(let i=0;i<table.length;++i){
+        newTable.push({name: table[i].name ,content: table[i].content});
+    }
+    return newTable;
+}
 
-(function a() {
-    //build an ast with 2 lines of code
-    let ast = esprima.parse("console.log('1');\n console.log('2');")
-    console.log("original code:\n" + escodegen.generate(ast));
-    console.log();
+function isParam(node){
+    for(let i =0;i<params_values.length;++i){
+        if(params_values[i].name === node.name) {
+            return true;
+        }
+    }
+    return false;
+}
 
-    //remove one of the lines, works!
-    let done = false;
-    ast = estraverse.replace(ast, {
+function assignment_handle(tree,table){
+    tree.right = estraverse.replace(tree.right, {
         enter: function (node) {
-            if (done)
-                return this.break();
-            if (node.type === esprima.Syntax.ExpressionStatement) {
-                done = true;
-                this.remove();
+            if (node.type === 'Identifier'){
+                let found =contains(node,table);
+                if(found > -1)
+                    return table[found].content;
             }
         },
-        leave: function (node) {
-            if (done)
-                return this.break();
+    });
+    if(!isParam(tree.left)){
+        tree = isNotParamAssignment_handle(tree,table);
+        return true;
+    }
+    let index = getParam(tree.left);
+    params_values[index].content = tree.right;
+    return false;
+}
+
+function isNotParamAssignment_handle(tree,table){
+    let found = contains(tree.left,table);
+    if(found < 0)
+        table.push({name: tree.left.name, content: tree.right});
+    else {
+        table[found].content = tree.right;
+    }
+}
+
+function if_handle(tree,table){
+    estraverse.replace(tree.test, {
+        enter: function (node) {
+            if(node.type ==='Identifier'){
+                if(!isParam(node)){
+                    let found = contains(node,table);
+                    if(found > -1){
+                        return table[found].content;
+                    }
+                }
+            }
+        },
+    });
+    if(tree.consequent !==null)
+        sub(tree.consequent,copy_array(table));
+    if(tree.alternate !== null)
+        sub(tree.alternate,copy_array(table));
+}
+
+function return_handle(tree,table){
+    estraverse.replace(tree , {
+        enter: function (node) {
+            if(node.type ==='Identifier' && !isParam(node)){
+                let found = contains(node,table);
+                if(found > -1){
+                    return table[found].content;
+                }
+            }
         }
     });
-    console.log("removed node:\n" + escodegen.generate(ast));
-})();
+}
+
+function evaluateCode(parsedCode,table){
+    estraverse.replace(parsedCode, {
+        enter: function (node) {
+            if(node.type === 'AssignmentExpression') {
+                evaluateCode(node.right,table);
+                let index = getParam(node.left);
+                table[index].content = node.right;
+                this.skip();
+            }
+            if(node.type === 'Identifier'){
+                let index = getParam(node);
+                if(index > -1) {
+                    return params_values[index].content;
+                }
+            }
+            if(node.type === 'IfStatement'){
+                if_evaluateCode(node,table);
+            }
+        }
+    });
+}
+
+function if_evaluateCode(node,table){
+    evaluateCode(node.test);
+    let x = eval(escodegen.generate(node.test));
+    x ? linesColor.push({line : node.test.loc.start.line -1,color: 'green'}) : linesColor.push({line : node.test.loc.start.line -1,color: 'red'});
+    if(node.consequent !==null)
+        evaluateCode(node.consequent,copy_array(table));
+    if(node.alternate !== null)
+        evaluateCode(node.alternate,copy_array(table));
+}
+
+function checkColor(lineNumber){
+    for(let i=0;i<linesColor.length;++i){
+        if(linesColor[i].line === lineNumber){
+            return linesColor[i].color;
+        }
+    }
+    return null;
+}
+
+function getParam(node){
+    for(let i =0;i<params_values.length;++i){
+        if(node.name === params_values[i].name)
+            return i;
+    }
+    return -1;
+}
+
+export {parseCode,symbolic_sub, evaluateCode, params_values,checkColor,values};
