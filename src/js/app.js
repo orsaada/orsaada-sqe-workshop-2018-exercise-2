@@ -1,66 +1,61 @@
 import $ from 'jquery';
-import {parseCode, statements} from './code-analyzer';
-import {create_objects} from './code-analyzer';
+
+import {parseCode, symbolic_sub, evaluateCode, params_values,checkColor,values} from './code-analyzer';
+
+let escodegen = require('escodegen');
 
 $(document).ready(function () {
     $('#codeSubmissionButton').click(() => {
-        delete_table();
-        let codeToParse = $('#codePlaceholder').val();
-        let parsedCode = parseCode(codeToParse);
-        create_objects(parsedCode);
-        create_table();
+        let input = $('#codePlaceholder').val();
+        let parameters = $('#parameters').val();
+        let args =text_manipulation(parameters);
+        let parsedCode = parseCode(input,args);
+        parsedCode = symbolic_sub(parsedCode);
+        //let doc = document.getElementById('subCode');
+        let str = escodegen.generate(parsedCode);
+        //str = str.replace(/(?:\r\n|\r|\n)/g, '<br>');
+        //doc.innerHTML = str;
+        for(let i = 0;i<params_values.length;++i){
+            params_values[i].content = {type: 'Literal', value:parseInt(values[i], 10), raw: values[i]};
+        }
+        evaluateCode(parseCode(str),params_values);
+        colorify(str);
         $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
+        //$('#parsedCode').val(escodegen.generate(parsedCode));
     });
 });
 
-const keys = ['Line','Type','Name','Condition', 'Value'];
-const fields = ['line','type','name','condition','value'];
+function text_manipulation(parameters){
+    parameters = parameters.trim();
+    // break the textblock into an array of lines
+    let lines = parameters.split('\n');
+    let words = parameters.split(' ');
+    let argumentLine;
+    (words[0] !== 'function'&& words[0] !== 'let') ? argumentLine = lines.splice(0,1) : argumentLine = lines.splice(-1,1);
+    return argumentLine[0].split(',');
+    // join the array back into a single string
+    // let codeToParse = lines.join('\n');
+}
 
-function create_table(){
+function colorify(str){
+    console.log(str);
+    let lines = str.split('\n');
     let body = document.getElementsByTagName('body')[0];
-    let tbl = document.createElement('TABLE');
-    body.appendChild(tbl);
-    tbl.setAttribute('id', 'myTable');
-    document.body.appendChild(tbl);
-    let header = document.createElement('TR');
-    styleTable(tbl,header);
-    header.setAttribute('id', 'myTh');
-    document.getElementById('myTable').appendChild(header);
-    for (let i = 0, l = keys.length; i < l; i ++) {
-        let data = document.createElement('TD');
-        let text = document.createTextNode(keys[i]);
-        data.appendChild(text);
-        document.getElementById('myTh').appendChild(data);
-    }
-    add_rows();
-}
-
-function add_rows() {
-    let tbl = document.getElementById('myTable');
-    for (let i = 0; i < statements.length; i++) {
-        let row = document.createElement('TR');
-        row.setAttribute('id', 'myTr');
-        tbl.appendChild(row);
-        for(let j = 0;j<keys.length;j++){
-            let data = document.createElement('TD');
-            data.style.borderCollapse = 'collapse';
-            data.style.border='1px solid black';
-            let text = document.createTextNode(statements[i][fields[j]]);
-            data.appendChild(text);
-            row.appendChild(data);
+    //let paragraph = document.getElementById('afterCode');
+    for(let i = 0;i<lines.length;++i){
+        let element = document.createElement('line'+i);
+        let linePar = document.createTextNode(lines[i]);
+        body.appendChild(element);
+        //paragraph.appendChild(linePar);
+        element.appendChild(linePar);
+        element.appendChild(document.createElement('br'));
+        let color = checkColor(i);
+        if(color !== null){
+            if(color === 'green')
+                element.style.backgroundColor = 'green';
+            else
+                element.style.backgroundColor = 'red';
         }
+    // paragraph.appendChild(linePar);
     }
-}
-
-function styleTable(tbl,header){
-    tbl.style.borderCollapse = 'collapse';
-    tbl.style.textAlign = 'center';
-    header.style.backgroundColor = 'Lavender';
-    header.style.fontWeight = 'bold';
-}
-
-function delete_table(){
-    let tbl = document.getElementById('myTable');
-    if(tbl != null)
-        tbl.remove();
 }
