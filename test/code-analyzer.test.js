@@ -1,153 +1,327 @@
 import assert from 'assert';
-import {parseCode, create_objects,statements} from '../src/js/code-analyzer';
+import {parseCode, symbolic_sub, setValues, evaluateCode} from '../src/js/code-analyzer';
 
-describe('Function and While', () => {
-    it('WhileStatement', () => {
-        create_objects(parseCode('while (low <= high) {}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"WhileStatement","name":"",' +
-            '"condition":"low<=high","value":""}]');
+let escodegen = require('escodegen');
+
+describe('func_a', () => {
+    it('func_a_assignment', () => {
+        let parsedCode = parseCode(func_a_assignment);
+        let result = parseCode(func_a_assignment_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
-
-    it('FunctionDeclaration', () => {
-        create_objects(parseCode('function binarySearch(X, V, n){ return -1;}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"FunctionDeclaration","name":"binarySearch",' +
-            '"condition":"","value":""},{"line":1,"type":"Identifier","name":"X","condition":"","value":""},' +
-            '{"line":1,"type":"Identifier","name":"V","condition":"","value":""},{"line":1,"type":"Identifier"' +
-            ',"name":"n","condition":"","value":""},{"line":1,"type":"ReturnStatement","name":"","condition":""' +
-            ',"value":"-1"}]');
-    });
-});
-
-describe('For Loops tests', () => {
-    it('for', () => {
-        create_objects(parseCode('for(i=0;i<10;++i){}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"ForStatement","name":"","condition":"i<10",' +
-            '"value":""},{"line":1,"type":"AssignmentExpression","name":"i","condition":"","value":"0"}' +
-            ',{"line":1,"type":"UpdateExpression","name":"i","condition":"","value":"++i"}]');
-    });
-
-    it('update for prefix', () => {
-        create_objects(parseCode('i++;'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"UpdateExpression","name":"i","condition":"",' +
-            '"value":"i++"}]');
+    it('func_a_if', () => {
+        let parsedCode = parseCode(func_a_if);
+        let result = parseCode(func_a_if_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
 });
 
-
-describe('If Loops tests', () => {
-    it('IfStatement', () => {
-        create_objects(parseCode('if(A[5] >3){}else{y=5;}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"IfStatement","name":"","condition":"A[5]>3",' +
-            '"value":""},{"line":1,"type":"ElseStatement","name":"","condition":"","value":""},{"line":1,"type":' +
-            '"AssignmentExpression","name":"y","condition":"","value":"5"}]');
+describe('func_a', () => {
+    it('func_a_return', () => {
+        let parsedCode = parseCode(func_a_return);
+        let result = parseCode(func_a_return_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
+    it('func_a_complete', () => {
+        let parsedCode = parseCode(func_a);
+        let result = parseCode(func_a_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
 
-    it('elseif', () => {
-        create_objects(parseCode('if(A[5] >3){}else if(a==5){}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"IfStatement","name":"","condition":"A[5]>3",' +
-            '"value":""},{"line":1,"type":"IfStatement","name":"","condition":"a==5","value":""}]');
+describe('func_b', () => {
+    it('func_b', () => {
+        let parsedCode = parseCode(func_b);
+        let result = parseCode(func_b_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
+
+describe('func_c', () => {
+    it('func_c_undefined_local', () => {
+        let parsedCode = parseCode(func_c_undefined_local);
+        let result = parseCode(func_c_undefined_local_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+    it('func_c_assignment_to_parameter', () => {
+        let parsedCode = parseCode(func_c_assignment_to_parameter);
+        let result = parseCode(func_c_assignment_to_parameter_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
+
+describe('func_d', () => {
+    it('func_d_global', () => {
+        let parsedCode = parseCode(func_d_global);
+        let result = parseCode(func_d_global_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
+
+describe('eval', () => {
+    it('eval red-red', () => {
+        let parsedCode = parseCode(func_a);
+        let parsedParams = parseCode('3,2,1');
+        setValues(parsedParams.body[0].expression.expressions);
+        parsedCode = symbolic_sub(parsedCode);
+        let codeAfterSub = escodegen.generate(parsedCode);
+        let linesColor= evaluateCode(parseCode(codeAfterSub),[]);
+        assert.equal(linesColor[0].color, 'red');
+        assert.equal(linesColor[0].line, 1);
+        assert.equal(linesColor[1].color, 'red');
+        assert.equal(linesColor[1].line, 3);
     });
 
 });
 
-describe('variables', () => {
-    it('let x = 1 is working', () => {
-        create_objects(parseCode('let x = 1'));
-        let data = statements.find(function (member) {
-            return member.type === 'VariableDeclaration';
-        });
-        assert(data.line === 1);
-        assert(data.type === 'VariableDeclaration');
-        assert(data.name === 'x');
-        assert(data.condition === '');
-        assert(data.value === '1');
-        assert(statements.length === 1);
-    });
-
-    it('Let statement', () => {
-        create_objects(parseCode('let x;'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"VariableDeclaration","name":"x",' +
-            '"condition":"","value":""}]');
+describe('eval', () => {
+    it('eval red-green', () => {
+        let parsedCode = parseCode(func_a);
+        let parsedParams = parseCode('1,2,3');
+        setValues(parsedParams.body[0].expression.expressions);
+        parsedCode = symbolic_sub(parsedCode);
+        let codeAfterSub = escodegen.generate(parsedCode);
+        let linesColor= evaluateCode(parseCode(codeAfterSub),[]);
+        for(let i = 0;i<linesColor.length ;i++){
+            if(linesColor[i].line === 1){
+                assert.equal(linesColor[i].color, 'red');
+            }
+            if(linesColor[i].line === 3){
+                assert.equal(linesColor[i].color, 'green');
+            }
+        }
     });
 });
 
-
-
-
-describe('unique expressions', () => {
-    it('SequenceExpression', () => {
-        create_objects(parseCode('x = 5, y =8'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"AssignmentExpression","name":"x","condition":"",' +
-            '"value":"5"},{"line":1,"type":"AssignmentExpression","name":"y","condition":"","value":"8"}]');
+describe('func_e', () => {
+    it('func_a_assignment', () => {
+        let parsedCode = parseCode(func_e);
+        let result = parseCode(func_e_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
 
-    it('logical', () => {
-        create_objects(parseCode('if(a&&b){}'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"IfStatement","name":"","condition":"a&&b",' +
-            '"value":""}]');
-    });
-});
-
-describe('complex functions', () => {
-    it('function a', () => {
-        create_objects(parseCode(function_a));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"FunctionDeclaration","name":"binarySearch",' +
-            '"condition":"","value":""},{"line":1,"type":"Identifier","name":"X","condition":"","value":""},' +
-            '{"line":1,"type":"Identifier","name":"V","condition":"","value":""},{"line":1,"type":"Identifier",' +
-            '"name":"n","condition":"","value":""},{"line":2,"type":"VariableDeclaration","name":"low",' +
-            '"condition":"","value":""},{"line":2,"type":"VariableDeclaration","name":"high","condition":"",' +
-            '"value":""},{"line":2,"type":"VariableDeclaration","name":"mid","condition":"","value":""},{"line":3,' +
-            '"type":"AssignmentExpression","name":"low","condition":"","value":"0"},{"line":4,"type":"AssignmentExp' +
-            'ression","name":"high","condition":"","value":"n-1"},{"line":5,"type":"WhileStatement","name":"",' +
-            '"condition":"low<=high","value":""},{"line":6,"type":"AssignmentExpression","name":"mid","condition":"",' +
-            '"value":"low+high/2"},{"line":7,"type":"IfStatement","name":"","condition":"X<V[mid]","value":""},' +
-            '{"line":8,"type":"AssignmentExpression","name":"high","condition":"","value":"mid-1"},' +
-            '{"line":9,"type":"IfStatement","name":"","condition":"X>V[mid]","value":""},' +
-            '{"line":10,"type":"AssignmentExpression","name":"low","condition":"",' +
-            '"value":"mid+1"},{"line":12,"type":"ReturnStatement","name":"","condition":"",' +
-            '"value":"mid"},{"line":14,"type":"ReturnStatement","name":"","condition":"","value":"-1"}]');
+    it('func_a_assignment', () => {
+        let parsedCode = parseCode(func_e_assign_to_param);
+        let result = parseCode(func_e_assign_to_param_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
 });
 
-describe('complex functions', () => {
-    it('function b', () => {
-        create_objects(parseCode(function_b));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"FunctionDeclaration","name":"map","condition":"",' +
-            '"value":""},{"line":1,"type":"Identifier","name":"f","condition":"","value":""},{"line":1,' +
-            '"type":"Identifier","name":"a","condition":"","value":""},{"line":2,"type":"VariableDeclaration",' +
-            '"name":"result","condition":"","value":"[]"},{"line":2,"type":"VariableDeclaration","name":"i",' +
-            '"condition":"","value":""},{"line":3,"type":"ForStatement","name":"","condition":"i!=a[length]",' +
-            '"value":""},{"line":3,"type":"AssignmentExpression","name":"i","condition":"","value":"0"},{"line":3,' +
-            '"type":"UpdateExpression","name":"i","condition":"","value":"i++"},{"line":4,"type":' +
-            '"AssignmentExpression","name":"result[i]","condition":"","value":"a[i]"},{"line":5,"type":' +
-            '"ReturnStatement","name":"","condition":"","value":"result"}]');
+describe('func_f', () => {
+    it('func f assignmentt wice', () => {
+        let parsedCode = parseCode(func_f);
+        let result = parseCode(func_f_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
 
-    it('array not empty', () => {
-        create_objects(parseCode('a = [5,3];'));
-        assert(JSON.stringify(statements) === '[{"line":1,"type":"AssignmentExpression","name":"a","condition":"","value":"[5,3]"}]');
+    it('global assign', () => {
+        let parsedCode = parseCode(f_global_assign);
+        let result = parseCode(f_global_assign_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
     });
 });
 
-let function_a = 'function binarySearch(X, V, n){\n' +
-    '    let low, high, mid;\n' +
-    '    low = 0;\n' +
-    '    high = n - 1;\n' +
-    '    while (low <= high) {\n' +
-    '        mid = (low + high)/2;\n' +
-    '        if (X < V[mid])\n' +
-    '            high = mid - 1;\n' +
-    '        else if (X > V[mid])\n' +
-    '            low = mid + 1;\n' +
-    '        else\n' +
-    '            return mid;\n' +
+describe('func_g', () => {
+    it('func g', () => {
+        let parsedCode = parseCode(func_g);
+        let result = parseCode(func_g_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
+
+let func_a_assignment = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '}\n';
+
+let func_a_assignment_result = 'function foo(x, y, z){\n' +
+    '}\n';
+
+let func_a_if = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    if (b < z) {\n' +
+    '        c = c + 5;\n' +
     '    }\n' +
-    '    return -1;\n' +
+    '}\n';
+
+let func_a_if_result = 'function foo(x, y, z) {\n' +
+    'if (x + 1 + y < z) {\n' +
+    '}\n' +
     '}';
 
-let function_b = 'function map(f, a) {\n' +
-    '  var result = [],i; \n' +
-    '  for (i = 0; i != a.length; i++)\n' +
-    '    result[i] = a[i];\n' +
-    '  return result;\n' +
+let func_a_return = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    if (b < z) {\n' +
+    '        c = c + 5;\n' +
+    '        return x + y + z + c;\n' +
+    '    }\n' +
+    '}\n';
+
+let func_a_return_result = 'function foo(x, y, z) {\n' +
+    'if (x + 1 + y < z) {\n' +
+    'return x + y + z + (0 + 5);\n' +
+    '}\n' +
+    '}';
+
+let func_a = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    if (b < z) {\n' +
+    '        c = c + 5;\n' +
+    '        return x + y + z + c;\n' +
+    '    } else if (b < z * 2) {\n' +
+    '        c = c + x + 5;\n' +
+    '        return x + y + z + c;\n' +
+    '    } else {\n' +
+    '        c = c + z + 5;\n' +
+    '        return x + y + z + c;\n' +
+    '    }\n' +
+    '}';
+
+let func_a_result = 'function foo(x, y, z) {\n' +
+    'if (x + 1 + y < z) {\n' +
+    'return x + y + z + (0 + 5);\n' +
+    '} else if (x + 1 + y < z * 2) {\n' +
+    'return x + y + z + (0 + x + 5);\n' +
+    '} else {\n' +
+    'return x + y + z + (0 + z + 5);\n' +
+    '}\n' +
+    '}';
+
+let func_b = 'function foo(x, y, z){\n' +
+    '    let a = x + 1;\n' +
+    '    let b = a + y;\n' +
+    '    let c = 0;\n' +
+    '    \n' +
+    '    while (a < z) {\n' +
+    '        c = a + b;\n' +
+    '        z = c * 2;\n' +
+    '    }\n' +
+    '    \n' +
+    '    return z;\n' +
+    '}\n';
+
+let func_b_result = 'function foo(x, y, z) {\n' +
+    'while (a < z) {\n' +
+    'z = (x + 1 + (x + 1 + y)) * 2;\n' +
+    '}\n' +
+    'return z;\n' +
+    '}';
+
+let func_c_undefined_local = 'function foo(x, y, z){\n' +
+    '    let a;\n' +
+    '    a=5;\n' +
+    '}\n';
+
+let func_c_undefined_local_result = 'function foo(x, y, z) {\n' +
+    '}';
+
+let func_c_assignment_to_parameter = 'function foo(x, y, z){\n' +
+    '    let a =5,b=7;\n' +
+    '    x = x+a;\n' +
+    '}\n';
+
+let func_c_assignment_to_parameter_result = 'function foo(x, y, z) {\n' +
+    'x = x + 5;\n' +
+    '}';
+
+let func_d_global = 'let u=5;\n' +
+    'function foo(x, y, z){\n' +
+    '    let a = u;\n' +
+    '    x=a;\n' +
+    '}\n';
+
+let func_d_global_result = 'function foo(x, y, z) {\n' +
+    'x = 5;\n' +
+    '}';
+
+let func_e = 'function foo(x, y, z){\n' +
+    '    x = x+6;\n' +
+    '    let a = x+ 1;\n' +
+    '   if(a>7){\n' +
+    '}\n' +
+    '}\n';
+
+let func_e_result = 'function foo(x, y, z) {\n' +
+    'x = x + 6;\n' +
+    'if (x + 1 > 7) {\n' +
+    '}\n' +
+    '}';
+
+let func_e_assign_to_param = 'function foo(x, y, z){\n' +
+    '    x = x+6;\n' +
+    '    let a = x+ 1;\n' +
+    '    x=0;\n' +
+    '   if(a>7){\n' +
+    '}\n' +
+    '}\n';
+
+let func_e_assign_to_param_result = 'function foo(x, y, z) {\n' +
+    'x = x + 6;\n' +
+    'x = 0;\n' +
+    'if (x + 1 > 7) {\n' +
+    '}\n' +
+    '}';
+
+let func_f = 'function foo(x, y, z){\n' +
+    '    let t=5;\n' +
+    '    t=t+7;\n' +
+    '}\n';
+
+let func_f_result = 'function foo(x, y, z) {\n' +
+    '}';
+
+let f_global_assign = 'let t=5;\n' +
+    'function foo(x, y, z){\n' +
+    '    t=t+7;\n' +
+    '}\n';
+
+let f_global_assign_result = 'function foo(x, y, z) {\n' +
+    '}';
+
+let func_g = 'function foo(x, y, z){\n' +
+    '    let a = [1, 2, 3];\n' +
+    'a[0] = x;\n' +
+    'a[1] = x[0];\n' +
+    'a[2] = x[2];\n' +
+    'return a;\n' +
+    '}\n';
+
+let func_g_result = 'function foo(x, y, z) {\n' +
+    'return [x, x[0], x[2]];\n' +
     '}';
