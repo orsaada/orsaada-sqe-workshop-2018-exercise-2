@@ -39,6 +39,8 @@ describe('func_a', () => {
 
 describe('func_b', () => {
     it('func_b', () => {
+        let parsedParams = parseCode('1,2,3');
+        setValues(parsedParams.body[0].expression.expressions);
         let parsedCode = parseCode(func_b);
         let result = parseCode(func_b_result);
         assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
@@ -56,6 +58,8 @@ describe('func_c', () => {
         );
     });
     it('func_c_assignment_to_parameter', () => {
+        let parsedParams = parseCode('1,2,3');
+        setValues(parsedParams.body[0].expression.expressions);
         let parsedCode = parseCode(func_c_assignment_to_parameter);
         let result = parseCode(func_c_assignment_to_parameter_result);
         assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
@@ -149,6 +153,29 @@ describe('func_g', () => {
     it('func g', () => {
         let parsedCode = parseCode(func_g);
         let result = parseCode(func_g_result);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+});
+
+describe('func_i', () => {
+    it('func i', () => {
+        let parsedCode = parseCode(func_i);
+        let result = parseCode(func_i);
+        assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
+            escodegen.generate(result)
+        );
+    });
+
+});
+
+describe('func_h', () => {
+    it('func h assignment to array', () => {
+        let parsedParams = parseCode('[1,2,3,4],5,2');
+        setValues(parsedParams.body[0].expression.expressions);
+        let parsedCode = parseCode(func_h);
+        let result = parseCode(func_h_result);
         assert.equal(escodegen.generate(symbolic_sub(parsedCode)),
             escodegen.generate(result)
         );
@@ -324,4 +351,25 @@ let func_g = 'function foo(x, y, z){\n' +
 
 let func_g_result = 'function foo(x, y, z) {\n' +
     'return [x, x[0], x[2]];\n' +
+    '}';
+
+let func_h = 'function foo(x,y,z){\n' +
+    '       x[2]=8;\n' +
+    '       y = x[2];\n' +
+    '       let a = x[2];\n' +
+    '       if(a>7){\n' +
+    '          \n' +
+    '       }\n' +
+    '}';
+
+let func_h_result = 'function foo(x, y, z) {\n' +
+    'x[2] = 8;\n' +
+    'y = x[2];\n' +
+    'if (x[2] > 7) {\n' +
+    '}\n' +
+    '}';
+
+let func_i = 'function foo(x, y, z) {\n' +
+    'if (x > 7) {}\n' +
+    'else{}' +
     '}';

@@ -11,7 +11,7 @@ function setValues(inputValues){
     values = inputValues;
 }
 
-function symbolic_sub(parsedCode){
+function symbolic_sub(parsedCode){ //main symbolic subtitution (global and function)
     let func = null,table = [];
     estraverse.traverse(parsedCode, {
         enter: function (node) {
@@ -25,39 +25,53 @@ function symbolic_sub(parsedCode){
             }
         }
     });
-    return symbolic_sub_helper(func,table);
+    intialize_parameters(func);
+    return inside_function_sub(func ,table);
 }
 
-function symbolic_sub_helper(func,table){
+function intialize_parameters(func){
     params_values = [];
     params = func.params;
     for(let i = 0; i < params.length ;++i)
         params_values.push({name: params[i].name,content: values[i]});
-    return inside_function_sub(func ,table);
 }
 
 function inside_function_sub(parsedCode,table){
     parsedCode = estraverse.replace(parsedCode, {
         enter: function (node) {
-            if(expression_handle(node,table)) {
+            if(sub_expression_handle(node,table))
                 this.remove();
-            }
             if(node.type === 'VariableDeclaration'){
                 sub_variable_declaration_handle(node,table);
                 this.remove();
             }
             if(node.type === 'ReturnStatement'){
-                return_handle(node,table);
+                sub_return_handle(node,table);
             }
             if(node.type === 'IfStatement')
-                if_handle(node,table);
+                sub_if_handle(node,table);
         }
     });
     return parsedCode;
 }
 
-function expression_handle(node,table){
-    return node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' && assignment_handle(node.expression, table);
+function sub_if_handle(tree,table){
+    estraverse.replace(tree.test, {
+        enter: function (node) {
+            if(node.type ==='Identifier' && !isParam(node)){
+                let found = contains(node,table);
+                return table[found].content;
+            }
+        },
+    });
+    inside_function_sub(tree.consequent, copy_array(table));
+    if(tree.alternate !== null)
+        inside_function_sub(tree.alternate,copy_array(table));
+}
+
+function sub_expression_handle(node,table){
+    return node.type === 'ExpressionStatement' && node.expression.type === 'AssignmentExpression' &&
+        assignment_handle(node.expression, table);
 }
 
 function sub_variable_declaration_handle(node,table){
@@ -112,9 +126,8 @@ function isParam(node){
     else
         name = node.name;
     for(let i =0;i<params_values.length;++i){
-        if(params_values[i].name === name) {
+        if(params_values[i].name === name)
             return true;
-        }
     }
     return false;
 }
@@ -129,12 +142,11 @@ function assignment_handle(tree,table){
             }
         },
     });
-    assign_in_assignment_handle(tree,table);
-    return !isParam(tree.left);
-
+    add_to_table(tree,table);
+    return add_to_params(tree);
 }
 
-function assign_in_assignment_handle(tree,table){
+function add_to_table(tree,table){
     let index = contains(tree.left, table);
     if(index > -1){
         let found = contains(tree.left,table);
@@ -150,37 +162,26 @@ function assign_in_assignment_handle(tree,table){
     }
 }
 
-function if_handle(tree,table){
-    estraverse.replace(tree.test, {
-        enter: function (node) {
-            if(node.type ==='Identifier'){
-                if(!isParam(node)){
-                    let found = contains(node,table);
-                    if(found > -1){
-                        console.log('c');
-                        return table[found].content;
-                    }
-                }
-            }
-        },
-    });
-    if(tree.consequent !==null) {
-        console.log('b');
-        inside_function_sub(tree.consequent, copy_array(table));
+function add_to_params(tree){
+    if(isParam(tree.left)){
+        let paramIndex = getParamIndex(tree.left);
+        if(params_values[paramIndex].content!== null && params_values[paramIndex].content.type === 'ArrayExpression') {
+            let array = params_values[paramIndex].content;
+            array.elements[tree.left.property.value] = tree.right;
+        }
+        else
+            params_values[paramIndex].content = tree.right;
+        return false;
     }
-    if(tree.alternate !== null)
-        inside_function_sub(tree.alternate,copy_array(table));
+    return true;
 }
 
-function return_handle(tree,table){
+function sub_return_handle(tree,table){
     estraverse.replace(tree , {
         enter: function (node) {
             if(node.type ==='Identifier' && !isParam(node)){
                 let found = contains(node,table);
-                if(found > -1){
-                    console.log('a');
-                    return table[found].content;
-                }
+                return table[found].content;
             }
         }
     });
@@ -190,7 +191,7 @@ function evaluateCode(parsedCode,linesColor){
     estraverse.replace(parsedCode, {
         enter: function (node) {
             if(node.type === 'Identifier'){
-                let index = getParam(node);
+                let index = getParamIndex(node);
                 if(index > -1)
                     return params_values[index].content;
             }
@@ -207,9 +208,14 @@ function evaluateCode(parsedCode,linesColor){
     return linesColor;
 }
 
-function getParam(node){
+function getParamIndex(node){
+    let name;
+    if(node.type === 'MemberExpression')
+        name = node.object.name;
+    else
+        name = node.name;
     for(let i =0;i<params_values.length;++i){
-        if(node.name === params_values[i].name)
+        if(name === params_values[i].name)
             return i;
     }
     return -1;

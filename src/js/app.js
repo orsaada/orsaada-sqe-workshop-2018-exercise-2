@@ -10,8 +10,9 @@ $(document).ready(function () {
         $('#parsedCode').val(JSON.stringify(parsedCode, null, 2));
         let parameters = $('#parameters').val();
         let parsedParams = parseCode(parameters);
-        console.log(parsedParams);
-        let a = parsedParams.body[0].expression;
+        let a = parsedParams.body;
+        if(a.length >0)
+            a = a[0].expression;
         if(a.hasOwnProperty('expressions'))
             a = a.expressions;
         setValues(a);
