@@ -10,7 +10,7 @@ const parseCode = (codeToParse) => {
 function setValues(inputValues){
     values = inputValues;
 }
-//
+
 function symbolic_sub(parsedCode){ //main symbolic subtitution (global and function)
     let func = null,table = [];
     estraverse.traverse(parsedCode, {
